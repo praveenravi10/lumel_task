@@ -2,28 +2,54 @@ import React, { useState } from "react";
 
 type Row = {
   id: number;
-  name: string;
-  amount: number;
+  label: string;
+  value: number;
   children?: Row[];
 };
 
 const initialData: Row[] = [
-  {
-    id: 1,
-    name: "Infrastructure",
-    amount: 0,
-    children: [
-      { id: 2, name: "Server", amount: 500 },
-      { id: 3, name: "Network", amount: 300 }
-    ]
-  }
+  
+    {
+      "id": 1,
+      "label": "Electronics",
+      "value": 1400, //this value needs to be calculated from the children values (800+700)
+      "children": [
+        {
+          "id": 1,
+          "label": "Phones",
+          "value": 800
+        },
+        {
+          "id": 2,
+          "label": "Laptops",
+          "value": 700
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "label": "Furniture",
+      "value": 1000, //this need to be calculated from the children values (300+700)
+      "children": [
+        {
+          "id": 3,
+          "label": "Tables",
+          "value": 300
+        },
+        {
+          "id": 4,
+          "label": "Chairs",
+          "value": 700
+        }
+      ]
+}
 ];
 
 const HierarchicalTable = () => {
   const [rows, setRows] = useState<Row[]>(initialData);
 
   const getTotal = (row: Row): number => {
-    if (!row.children) return row.amount;
+    if (!row.children) return row.value;
 
     return row.children.reduce(
       (sum, child) => sum + getTotal(child),
@@ -61,7 +87,7 @@ const HierarchicalTable = () => {
       <React.Fragment key={row.id}>
         <tr>
           <td style={{ paddingLeft: level * 20 }}>
-            {row.children ? "children" : "leaf"} {row.name}
+            {row.children ? "children" : "leaf"} {row.label}
           </td>
           <td>
             {row.children ? (
@@ -69,7 +95,7 @@ const HierarchicalTable = () => {
             ) : (
               <input
                 type="number"
-                value={row.amount}
+                value={row.value}
                 onChange={(e) =>
                   handleChange(row.id, Number(e.target.value))
                 }
