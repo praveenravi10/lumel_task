@@ -1,133 +1,102 @@
-import React, { use, useEffect } from 'react'
-import { Data } from './types/data';
-import { Button } from '@mui/material';
+import React, { useState } from "react";
 
-const Table = () => {
-    const [value, setValue] = React.useState<number>(0);
-    const rowData: Data[] = [
-        {
-            "id": "electronics",
-            "label": "Electronics",
-            "value": 1500, //this value needs to be calculated from the children values (800+700)
-            "children": [
-                {
-                    "id": "phones",
-                    "label": "Phones",
-                    "value": 800
-                },
-                {
-                    "id": "laptops",
-                    "label": "Laptops",
-                    "value": 700
-                }
-            ]
-        },
-        {
-            "id": "furniture",
-            "label": "Furniture",
-            "value": 1000, //this need to be calculated from the children values (300+700)
-            "children": [
-                {
-                    "id": "tables",
-                    "label": "Tables",
-                    "value": 300
-                },
-                {
-                    "id": "chairs",
-                    "label": "Chairs",
-                    "value": 700
-                }
-            ]
-        }
+type Row = {
+  id: number;
+  name: string;
+  amount: number;
+  children?: Row[];
+};
+
+const initialData: Row[] = [
+  {
+    id: 1,
+    name: "Infrastructure",
+    amount: 0,
+    children: [
+      { id: 2, name: "Server", amount: 500 },
+      { id: 3, name: "Network", amount: 300 }
     ]
+  }
+];
 
-    const [rowsData, setRowsData] = React.useState<Data[]>(rowData);
-    const calculateTotalValue = (data: Data): number => {
-        if (!data.children || data.children.length === 0) {
+const HierarchicalTable = () => {
+  const [rows, setRows] = useState<Row[]>(initialData);
 
-            return data.value;
-        } else if (data.children && data.children.length > 0) {
-            const childTotal = data.children.reduce((sum, child) => sum + calculateTotalValue(child), 0);
-            return childTotal;
-        }
-        return 0
-    }
+  const getTotal = (row: Row): number => {
+    if (!row.children) return row.amount;
 
-    const updatedData = (data: Data[]): Data[] => {
-        return data.map((row) => {
-            if (row.children && row.children.length > 0) {
-                const updatedChildren = updatedData(row.children);
-                const childTotal = updatedChildren.reduce((sum, child) => sum + child.value, 0);
-                return {
-                    ...row,
-                    value: childTotal,
-                    children: updatedChildren
-                };
-            }
-            return row;
-        });
-    };
+    return row.children.reduce(
+      (sum, child) => sum + getTotal(child),
+      0
+    );
+  };
 
-    const handlechange = (data: Data) => {
-        console.log(data)
-        setRowsData((prevData) => {
-            const updatedData = prevData.map((row) => {
-                if (row.id === data.id) {
-                    return { ...row, value: data.value };
-                } else if (row.children && row.children.length > 0) {
-                    const updatedChildren = row.children.map((child) => {
-                        if (child.id === data.id) {
-                            return { ...child, value: data.value };
-                        }
-                        return child;
-                    });
-                    const childTotal = updatedChildren.reduce((sum, child) => sum + child.value, 0);
-                    return { ...row, value: childTotal, children: updatedChildren };
+  const updateAmount = (
+    data: Row[],
+    id: number,
+    value: number
+  ): Row[] => {
+    return data.map((row) => {
+      if (row.id === id) {
+        return { ...row, amount: value };
+      }
+
+      if (row.children) {
+        return {
+          ...row,
+          children: updateAmount(row.children, id, value)
+        };
+      }
+
+      return row;
+    });
+  };
+
+  const handleChange = (id: number, value: number) => {
+    setRows(updateAmount(rows, id, value));
+  };
+
+  const renderRows = (data: Row[], level = 0) =>
+    data.map((row) => (
+      <React.Fragment key={row.id}>
+        <tr>
+          <td style={{ paddingLeft: level * 20 }}>
+            {row.children ? "children" : "leaf"} {row.name}
+          </td>
+          <td>
+            {row.children ? (
+              <b>{getTotal(row)}</b>
+            ) : (
+              <input
+                type="number"
+                value={row.amount}
+                onChange={(e) =>
+                  handleChange(row.id, Number(e.target.value))
                 }
-                return row;
-            });
-            return updatedData;
-        });
-    }
-   
-    return (
-        <div>
-            <h2>Hierarchical Table Website</h2>
-            <table>
-                <thead>
-                 <tr>
-                       <th> Label</th>
-                    <th>value</th>
-                    <th>Label</th>
-                    <th>Allocation %</th>
-                    <th>Allocation Val</th>
-                    <th>Variance %</th>
-                 </tr>
-                </thead>
-                <tbody>
-                    {updatedData(rowsData).map((row) => (
-                        <td key={row.id}>
-                            <td>{row.label}</td>
-                            <td>{row.value}</td>
-                            {row.children && row.children.length > 0 ? (
-                                row.children.map((child) => (
-                                    <React.Fragment key={child.id}>
-                                        <tr>
-                                        <td>{child.label}</td>
-                                        <td>{((child.value / row.value) * 100).toFixed(2)}%</td>
-                                        <td>{child.value}</td>
-                                        </tr>
-                                    </React.Fragment>
-                                ))
-                            ) : null}
-                        </td>
-                    ))}
-                    <input type="text" placeholder='Enter label' onChange={ (e) => setValue(Number(e.target.value))} />
-                    <Button >Allocation Val</Button>
-                    <Button >Allocation %</Button>
-                </tbody>
-            </table>
-        </div>
-    )
-}
-export default Table
+              />
+            )}
+          </td>
+        </tr>
+
+        {row.children && renderRows(row.children, level + 1)}
+      </React.Fragment>
+    ));
+
+  return (
+    <table border={1} cellPadding={8}>
+      <thead>
+        <tr>
+          <th> Label</th>
+          <th>value</th>
+          <th>Input</th>
+          <th>Allocation %</th>
+          <th>Allocation Val</th>
+          <th>Variance %</th>
+        </tr>
+      </thead>
+      <tbody>{renderRows(rows)}</tbody>
+    </table>
+  );
+};
+
+export default HierarchicalTable;

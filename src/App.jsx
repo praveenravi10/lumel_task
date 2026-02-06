@@ -1,10 +1,10 @@
 import React from 'react'
-import Table from './components/Table'
+import HierarchicalTable from './components/Table'
 
 const App = () => {
   return (
     <div>
-      <Table />
+      <HierarchicalTable />
     </div>
   )
 }
